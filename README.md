@@ -171,19 +171,19 @@ These are draft ideas in plain language, not implemented endpoints. Final endpoi
  
 ### Decisions, open questions and next steps
  
-| Question / decision | Current position | Next step / person |
+| Question / decision | Current position | Next step |
 |---|---|---|
-| Scope of version 1 | Decided: Workflows A and B plus accepting an offer; payment, chat, maps API, reviews and verification are out | Confirm in coaching — [Name] |
-| Distance | Customer enters an approximate value in km | Ask in coaching; check a postal-code table as alternative — [Name] |
-| Price formula and rates | Draft (see business rule 3) | Validate rates with one real quote or a moving company website — [Name] |
-| Who sets a request to `completed`? | Undecided | Discuss in coaching — [Name] |
-| Company cancels after assignment | Out of scope for version 1 | Discuss in coaching — [Name] |
-| Can a company change or withdraw a pending offer? | Undecided | Decide before Milestone 2 — [Name] |
-| Accepting an offer as an API operation | Tendency: explicit action endpoint | Decide when writing the OpenAPI contract — [Name] |
-| User table(s) and roles | Undecided | Decide in the persistence/security lessons — [Name] |
-| Frontend technology | Undecided (allowed at this stage) | Decide before the integration milestone — [Name] |
-| API testing with Postman | Not done yet — none of us has worked with Postman so far | Send our sample JSON (`data/create-moving-request.json` and an offer) to a simple echo endpoint and record what comes back, before the backend milestone — [Name] |
-| Comparing external APIs (e.g. a distance/maps service) | Not done yet | Only relevant if we pursue the distance extension above — [Name] |
+| Scope of version 1 | Decided: Workflows A and B plus accepting an offer; payment, chat, maps API, reviews and verification are out | Confirm in coaching |
+| Distance | Customer enters an approximate value in km | Ask in coaching; check a postal-code table as alternative |
+| Price formula and rates | Draft (see business rule 3) | Validate rates with one real quote or a moving company website |
+| Who sets a request to `completed`? | Undecided | Discuss in coaching |
+| Company cancels after assignment | Out of scope for version 1 | Discuss in coaching |
+| Can a company change or withdraw a pending offer? | Undecided | Decide before Milestone 2 |
+| Accepting an offer as an API operation | Tendency: explicit action endpoint | Decide when writing the OpenAPI contract |
+| User table(s) and roles | Undecided | Decide in the persistence/security lessons |
+| Frontend technology | Undecided (allowed at this stage) | Decide before the integration milestone |
+| API testing with Postman | Not done yet — none of us has worked with Postman so far | Send our sample JSON (`data/create-moving-request.json` and an offer) to a simple echo endpoint and record what comes back, before the backend milestone |
+| Comparing external APIs (e.g. a distance/maps service) | Not done yet | Only relevant if we pursue the distance extension above |
  
 ### Milestone progress
  
