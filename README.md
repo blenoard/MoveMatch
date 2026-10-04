@@ -142,7 +142,7 @@ All example data is fictional.
 ### Business rules and possible operations
 
 **Rules (draft)**
-1. The moving date must not lie in the past. Exception: a date before today is rejected with an explanation; the other input is kept.
+1. The moving date must not lie in the past.
 2. Quantities are whole numbers ≥ 0, and at least one item has a quantity ≥ 1.
 3. The price range is calculated as estimate ± 15 %, rounded inwards to CHF 50. Draft estimate: base price CHF 350 + CHF 3 per km + CHF 60 per m³ + CHF 50 per floor without lift. Lena's move: 350 + 270 + 630 + 150 = CHF 1,400 → range CHF 1,200–1,600.
 4. A company offer must lie within the range of the request.
