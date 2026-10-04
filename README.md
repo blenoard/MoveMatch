@@ -85,13 +85,13 @@ These are starting responsibilities, not permanent silos. Everyone reviews the w
 
 Digital versions of our sketches (paper sketches from class can be added to the same folder):
 
-![Workflow A – input, review, success](sketches/01-customer-create-request.png)
+![Workflow A – input, review, success](01-customer-create-request.png)
 *Workflow A on a phone: the form, the review with the price range and the confirmation are states of one "new request" flow.*
 
-![Workflow A – error state, offers, accepted](sketches/02-customer-error-and-offers.png)
+![Workflow A – error state, offers, accepted](02-customer-error-and-offers.png)
 *Error state 2a (date too early, other input kept), the list of offers as cards, and the confirmation after accepting.*
 
-![Workflow B – marketplace and offer form](sketches/03-company-marketplace-offer.png)
+![Workflow B – marketplace and offer form](03-company-marketplace-offer.png)
 *Workflow B on a desktop: the marketplace table with filters, and the request detail with the offer form in error state 4a.*
 
 **Main inputs, actions and feedback**
@@ -128,7 +128,7 @@ All example data is fictional.
 | [`data/create-offer.json`](data/create-offer.json) / [`data/offer.json`](data/offer.json) | An offer as sent by the company and as saved |
 | [`data/error-examples.json`](data/error-examples.json) | Planned error responses for the main business rules |
 
-![First data model draft](sketches/04-data-model-draft.png)
+![First data model draft](04-data-model-draft.png)
 
 **Important fields and types**
 
