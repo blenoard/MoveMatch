@@ -201,5 +201,22 @@ These are draft ideas in plain language, not implemented endpoints. Final endpoi
 | Integration — later | Revised feature scope, frontend decision, architecture and a connected workflow | Update later |
  
 Contributions and decisions are described in this README; commit counts are not a measure of individual effort.
+
+### Milestone progress
+
+| Milestone | Available evidence | Status / next step |
+|---|---|---|
+| 1 — Design draft | Analysis, workflows A and B, sketches in `sketches/`, sample JSON in `data/`, proposed operations, open questions | Draft committed; record changes agreed in coaching |
+| 2 — Contract and available implementation | OpenAPI contract and implemented/tested progress | Update later |
+| Integration — later | Revised feature scope, frontend decision, architecture and a connected workflow | Update later |
+
+Contributions and decisions are described in this README; commit counts are not a measure of individual effort.
+
+## 4. References and acknowledgements
+
+- Course material Web-based Applications HS26 (FHNW, Dr. Devid Montecchiari): "Networks, the Web and APIs", "Web engineering and application design", "API design and lifecycle", project assignment and Milestone 1 README template.
+- Sketches and the data model diagram were drawn digitally; parts of the text and sketches were drafted with AI assistance (Claude) and reviewed and adapted by the team.
+
+Template lineage: the earlier [Pizzeria Reference Project](https://github.com/FHNW-INT/Pizzeria_Reference_Project) organised documentation around analysis, design, implementation, execution and project management. This template updates that structure for the HS26 Python/FastAPI teaching path.
  
 
