@@ -139,12 +139,6 @@ All example data is fictional.
 - An offer references its request (`movingRequestId`) and company (`companyId`). `acceptedOfferId` is `null` until the customer accepts an offer.
 - Status values: request `open`, `offers_received`, `assigned`, `completed`, `withdrawn`; offer `pending`, `accepted`, `declined`.
 
-**Uncertainties**
-
-- One `User` table with a role, or separate customer and company tables?
-- Are whole francs sufficient, or do we need centimes?
-- Is a manually entered `distanceKm` acceptable, or do we use a postal-code distance table?
-
 ### Business rules and possible operations
 
 **Rules (draft)**
