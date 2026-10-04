@@ -19,7 +19,7 @@ With MoveMatch, a customer describes the move **once** in a standard form (addre
 | Blenoard | Coordination and README | Keep decisions, questions and the milestone commit together; submit the repository link in Moodle |
 | Younes   | Users and workflow | Refine workflows A–B and the business rules after coaching |
 | Leutrim  | Sketches and interaction | Turn the sketches into a clickable prototype (Exercise 3) |
-| Saladin  | Data and API exploration | Maintain the sample JSON in `data/`; prepare the first OpenAPI draft for Milestone 2 |
+| Salahdin  | Data and API exploration | Maintain the sample JSON in `data/`; prepare the first OpenAPI draft for Milestone 2 |
 
 These are starting responsibilities, not permanent silos. Everyone reviews the whole draft and should be able to explain it in coaching.
 
