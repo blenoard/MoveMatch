@@ -173,3 +173,4 @@ The frontend checks rules 1, 2 and 4 early for better feedback, but the backend 
 
 These are draft ideas in plain language, not implemented endpoints. Final endpoints and the OpenAPI contract follow after coaching (Milestone 2).
 
+
