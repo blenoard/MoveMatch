@@ -85,7 +85,7 @@ These are starting responsibilities, not permanent silos. Everyone reviews the w
 
 Digital versions of our sketches (paper sketches from class can be added to the same folder):
 
-![Workflow A – input, review, success](01-customer-create-request.png)
+![Workflow A – input, review, success](sketches/01-customer-create-request.png)
 *Workflow A on a phone: the form, the review with the price range and the confirmation are states of one "new request" flow.*
 
 ![Workflow A – error state, offers, accepted](sketches/02-customer-error-and-offers.png)
