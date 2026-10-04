@@ -67,3 +67,80 @@ Questions and exceptions worth discussing
 
 What happens if a company cannot do the job after its offer was accepted (e.g. the truck breaks down a week before)? Version 1: handled outside the app; later possibly back to offers_received.
 What if the customer notices more furniture after offers arrived? Draft decision: editing is only allowed while the request is open; afterwards the customer withdraws and creates a new request.
+
+2. Design
+Screens and navigation
+Digital versions of our sketches (paper sketches from class can be added to the same folder):
+
+Workflow A – input, review, success Workflow A on a phone: the form, the review with the price range and the confirmation are states of one "new request" flow.
+
+Workflow A – error state, offers, accepted Error state 2a (date too early, other input kept), the list of offers as cards, and the confirmation after accepting.
+
+Workflow B – marketplace and offer form Workflow B on a desktop: the marketplace table with filters, and the request detail with the offer form in error state 4a.
+
+Main inputs, actions and feedback
+
+Customers mostly use a phone: one column, +/− steppers for furniture, a highlighted price range, buttons with clear verbs ("Calculate price range", "Publish request").
+Dispatchers mostly use a desktop: a table to compare many requests, filters for date and region, a price field labelled with the allowed range.
+Errors appear directly at the affected field, explain how to fix the problem and keep all other input. Accepting an offer needs a confirmation because it cannot be undone.
+Navigation (draft)
+
+View	Role	Main actions
+Start page	Visitor	Explains how MoveMatch works; log in / register (later)
+My requests	Customer	Open a request; create a new request
+New request (form → review → confirmation)	Customer	Calculate range; edit; publish
+Request detail with offers	Customer	Accept an offer; withdraw the request
+Marketplace	Company	Filter; open a request
+Request detail + offer form	Company	Submit an offer
+My offers	Company	See the status of own offers
+A clickable prototype (Bootstrap Studio) is planned but not yet available. The frontend technology is still undecided.
+
+Domain concepts and example data
+All example data is fictional.
+
+File	Content
+data/furniture-types.json	Catalogue of furniture types with their volume in m³
+data/create-moving-request.json	What the customer sends when creating a request
+data/price-estimate.json	How the price range for this request is calculated
+data/moving-request.json	The saved request as the app returns it
+data/moving-company.json	A registered moving company
+data/create-offer.json / data/offer.json	An offer as sent by the company and as saved
+data/error-examples.json	Planned error responses for the main business rules
+First data model draft
+
+Important fields and types
+
+movingDate is a string in ISO format ("2026-11-14"), because JSON has no date type; the backend converts it to check the 7-day rule.
+fromAddress / toAddress are objects, because postal code, floor and lift are used separately (region filter, floor surcharge).
+items is an array of { "furnitureTypeId", "quantity" }. Each item refers to the furniture catalogue by ID instead of a name, so that names can change and the volume is defined in one place. The quantity belongs to the item, not to the furniture type.
+Units are part of the key name (distanceKm, volumeM3); prices are whole CHF with a separate currency field.
+An offer references its request (movingRequestId) and company (companyId). acceptedOfferId is null until the customer accepts an offer.
+Status values: request open, offers_received, assigned, completed, withdrawn; offer pending, accepted, declined.
+Uncertainties
+
+One User table with a role, or separate customer and company tables?
+Are whole francs sufficient, or do we need centimes?
+Is a manually entered distanceKm acceptable, or do we use a postal-code distance table?
+Business rules and possible operations
+Rules (draft)
+
+The moving date lies at least 7 days in the future. Exception: a date 3 days ahead is rejected with an explanation; the other input is kept.
+Quantities are whole numbers ≥ 0, and at least one item has a quantity ≥ 1.
+The price range is calculated as estimate ± 15 %, rounded inwards to CHF 50. Draft estimate: base price CHF 350 + CHF 3 per km + CHF 60 per m³ + CHF 50 per floor without lift. Lena's move: 350 + 270 + 630 + 150 = CHF 1,400 → range CHF 1,200–1,600.
+A company offer must lie within the range of the request.
+A company can submit only one offer per request.
+Offers are only possible while the request is open or offers_received.
+When the customer accepts an offer, the request becomes assigned and all other offers become declined.
+A request can only be edited while it is open, and withdrawn as long as it is not assigned.
+The frontend checks rules 1, 2 and 4 early for better feedback, but the backend service logic is the authority, because the API can also be called without our frontend. Where the implementation enforces each rule will be documented later.
+
+User goal	Proposed action	Example input	Expected output	Open question
+Publish a move	Create a moving request	data/create-moving-request.json	Saved request with reference, volume, price range, status open	Is a manual distance acceptable?
+Find suitable jobs	Read open requests (with filters)	Date range, region	List of requests with date, route, volume, range	Filter by canton or by postal code range?
+Inspect a job	Read one request	Request ID 1042	All details incl. range; no contact data before acceptance	—
+Correct a mistake	Change a request	Changed furniture list	Updated request and recalculated range — only while open	Allow changes after offers?
+Cancel a move	Remove (withdraw) a request	Request ID	Status withdrawn; pending offers declined	Soft delete (status) or real delete?
+Make an offer	Create an offer	data/create-offer.json	Offer pending — or error: outside range / already offered	Can a company change its offer?
+Compare offers	Read offers of my request	Request ID	List of offers with company, price, message	Sort by price only?
+Book a company	Accept an offer	Offer ID 311	Request assigned, others declined	PATCH status or explicit action endpoint?
+These are draft ideas in plain language, not implemented endpoints. Final endpoints and the OpenAPI contract follow after coaching (Milestone 2).
