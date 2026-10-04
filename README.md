@@ -75,7 +75,7 @@ These are starting responsibilities, not permanent silos. Everyone reviews the w
 
 **Questions and exceptions worth discussing**
 
-- What happens if a company cannot do the job after its offer was accepted (e.g. the truck breaks down a week before)? Version 1: handled outside the app; later possibly back to `offers_received`.
+- What happens if a company cannot do the job after its offer was accepted (e.g. the truck breaks down a week before)? 
 - What if the customer notices more furniture after offers arrived? Draft decision: editing is only allowed while the request is `open`; afterwards the customer withdraws and creates a new request.
 
 
