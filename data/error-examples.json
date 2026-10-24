@@ -1,0 +1,102 @@
+[
+  {
+    "rule": 1,
+    "case": "Moving date lies in the past",
+    "request": "POST /moving-requests with movingDate 2026-10-06",
+    "httpStatus": 422,
+    "response": {
+      "code": "invalid_input",
+      "message": "movingDate: must not lie in the past."
+    }
+  },
+  {
+    "rule": 2,
+    "case": "No furniture item with quantity of at least 1",
+    "request": "POST /moving-requests with all quantities 0",
+    "httpStatus": 422,
+    "response": {
+      "code": "invalid_input",
+      "message": "items: at least one item with a quantity of 1 or more is required."
+    }
+  },
+  {
+    "rule": 4,
+    "case": "Offer price outside the allowed range",
+    "request": "POST /offers with price 1750 for request 1042",
+    "httpStatus": 422,
+    "response": {
+      "code": "invalid_input",
+      "message": "price: must be between 1200 and 1600 CHF."
+    }
+  },
+  {
+    "rule": 5,
+    "case": "Company already has an offer on this request",
+    "request": "POST /offers a second time for request 1042 by company 7",
+    "httpStatus": 409,
+    "response": {
+      "code": "conflict",
+      "message": "This company already has an offer on this request."
+    }
+  },
+  {
+    "rule": 6,
+    "case": "Request no longer accepts offers",
+    "request": "POST /offers for request 1042 with status assigned",
+    "httpStatus": 409,
+    "response": {
+      "code": "conflict",
+      "message": "Offers are only possible while the request is open or has offers."
+    }
+  },
+  {
+    "rule": 7,
+    "case": "Accepted offer does not exist any more (withdrawn)",
+    "request": "Accept offer 311 after the company deleted it",
+    "httpStatus": 404,
+    "response": {
+      "code": "not_found",
+      "message": "Requested resource not found."
+    }
+  },
+  {
+    "rule": 7,
+    "case": "Request already has an accepted offer",
+    "request": "Accept a second offer of request 1042",
+    "httpStatus": 409,
+    "response": {
+      "code": "conflict",
+      "message": "This request already has an accepted offer."
+    }
+  },
+  {
+    "rule": 8,
+    "case": "Edit a request that already has offers",
+    "request": "PUT /moving-requests/1042 with status offers_received",
+    "httpStatus": 409,
+    "response": {
+      "code": "conflict",
+      "message": "A request can only be edited while it is open."
+    }
+  },
+  {
+    "rule": 8,
+    "case": "Delete a request that is already assigned",
+    "request": "DELETE /moving-requests/1042 with status assigned",
+    "httpStatus": 409,
+    "response": {
+      "code": "conflict",
+      "message": "An assigned request cannot be deleted."
+    }
+  },
+  {
+    "rule": 9,
+    "case": "Withdraw an accepted offer",
+    "request": "DELETE /offers/311 with status accepted",
+    "httpStatus": 409,
+    "response": {
+      "code": "conflict",
+      "message": "An accepted offer is binding and cannot be withdrawn."
+    }
+  }
+]

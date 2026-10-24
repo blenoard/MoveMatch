@@ -1,0 +1,10 @@
+{
+  "id": 7,
+  "name": "Umzüge Keller GmbH",
+  "regions": [
+    "BS",
+    "BL",
+    "ZH"
+  ],
+  "contactEmail": "dispatch@keller-umzuege.example"
+}

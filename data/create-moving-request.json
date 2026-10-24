@@ -1,0 +1,34 @@
+{
+  "fromAddress": {
+    "postalCode": "4057",
+    "city": "Basel",
+    "floor": 3,
+    "hasLift": false
+  },
+  "toAddress": {
+    "postalCode": "8004",
+    "city": "Zürich",
+    "floor": 1,
+    "hasLift": true
+  },
+  "distanceKm": 90,
+  "movingDate": "2026-11-14",
+  "items": [
+    {
+      "furnitureTypeId": 1,
+      "quantity": 1
+    },
+    {
+      "furnitureTypeId": 2,
+      "quantity": 1
+    },
+    {
+      "furnitureTypeId": 3,
+      "quantity": 2
+    },
+    {
+      "furnitureTypeId": 4,
+      "quantity": 20
+    }
+  ]
+}

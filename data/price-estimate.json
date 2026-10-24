@@ -1,0 +1,27 @@
+{
+  "volumeM3": 10.5,
+  "distanceKm": 90,
+  "floorsWithoutLift": {
+    "from": 3,
+    "to": 0,
+    "total": 3
+  },
+  "rates": {
+    "basePriceChf": 350,
+    "perKmChf": 3,
+    "perM3Chf": 60,
+    "perFloorWithoutLiftChf": 50
+  },
+  "components": {
+    "basePrice": 350,
+    "distancePrice": 270,
+    "volumePrice": 630,
+    "floorSurcharge": 150
+  },
+  "estimate": 1400,
+  "margin": 0.15,
+  "rounding": "inwards to CHF 50",
+  "priceMin": 1200,
+  "priceMax": 1600,
+  "currency": "CHF"
+}

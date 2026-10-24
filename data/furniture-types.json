@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "name": "Sofa",
+    "volumeM3": 2.0
+  },
+  {
+    "id": 2,
+    "name": "Bed",
+    "volumeM3": 1.5
+  },
+  {
+    "id": 3,
+    "name": "Wardrobe",
+    "volumeM3": 2.0
+  },
+  {
+    "id": 4,
+    "name": "Moving box",
+    "volumeM3": 0.15
+  }
+]
