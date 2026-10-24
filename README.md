@@ -1,8 +1,8 @@
 # MoveMatch
 
-**Current stage:** Milestone 1 — design draft, revised after the design coaching (see [Changes after the design coaching](#changes-after-the-design-coaching-5-october)). This README is updated throughout the project; we do not start a separate document for each milestone.
+**Current stage:** Milestone 2 — OpenAPI contract and first implemented part of the backend (offers: submit and withdraw). The design from Milestone 1 was revised after the design coaching (see [Changes after the design coaching](#changes-after-the-design-coaching-5-october)). This README is updated throughout the project; we do not start a separate document for each milestone.
 
-Later sections (implementation, execution) will be added from the fourth theory session onwards. This version documents our design draft: drafts and open questions are expected; there is no running backend, database or complete OpenAPI contract yet.
+The backend is **not complete**: only the first workflow slice is implemented (see [Implementation](#4-implementation)). All other operations are planned in the contract. The frontend, login and the database come in later milestones.
 
 ## Project overview
 
@@ -12,16 +12,16 @@ With MoveMatch, a customer describes the move **once** in a standard form (addre
 
 **Intended users:** private customers who are planning a move, and dispatchers of small and medium moving companies.
 
-### Team and initial responsibilities
+### Team and responsibilities
 
-| Member | Initial responsibility | Next action |
-|---|---|---|
-| Blenoard | Coordination and README | Keep decisions, questions and the milestone commit together; submit the repository link in Moodle |
-| Younes   | Users and workflow | Refine workflows A–B and the business rules after coaching |
-| Leutrim  | Sketches and interaction | Turn the sketches into a clickable prototype (Exercise 3) |
-| Salahdin  | Data and API exploration | Maintain the sample JSON in `data/`; prepare the first OpenAPI draft for Milestone 2 |
+| Member | Responsibility in Milestone 2 | Files | Next action |
+|---|---|---|---|
+| Blenoard | README, persistence and seed data | `README.md`, `movematch/storage.py`, `movematch/seed.json` | Submit the repository link in Moodle; join the Teams channel; record the coaching feedback |
+| Younes   | Business rules (application logic) and behaviour tests | `movematch/service.py`, `tests/test_api.py` | Add the next rules (7: accept an offer, 8: edit/delete a request) with tests |
+| Leutrim  | HTTP interface and project setup | `movematch/api.py`, `movematch/models.py`, `movematch/main.py`, `requirements*.txt`, `pytest.ini`, `.gitignore` | Add the next endpoints (list offers of a request, accept an offer) |
+| Salahdin | OpenAPI contract and contract test | `contracts/movematch.openapi.yaml`, `tests/test_contract.py`, `data/*.json` | Keep the contract and the implementation reconciled; set more operations to `implemented` / `tested` |
 
-These are starting responsibilities, not permanent silos. Everyone reviews the whole draft and should be able to explain it in coaching.
+These are starting responsibilities, not permanent silos. Everyone reviews the whole project and should be able to explain it in coaching. Code was drafted with AI assistance (see References) and is reviewed by the person responsible for the file.
 
 ## 1. Analysis
 
@@ -157,7 +157,7 @@ All example data is fictional.
 9. An offer cannot be edited. A company can withdraw (delete) its own offer while it is `pending`; if it was the last pending offer, the request returns to `open`. An accepted offer is binding and cannot be withdrawn.
 10. An `assigned` request becomes `completed` automatically once its moving date has passed. Nobody sets this status manually in version 1.
 
-The frontend checks rules 1, 2 and 4 early for better feedback, but the backend service logic is the authority, because the API can also be called without our frontend. Where the implementation enforces each rule will be documented later.
+The frontend checks rules 1, 2 and 4 early for better feedback, but the backend service logic is the authority, because the API can also be called without our frontend. Where each rule is enforced is documented in [Implementation](#4-implementation).
 
 | User goal | Proposed action | Example input | Expected output | Open question |
 |---|---|---|---|---|
@@ -171,7 +171,7 @@ The frontend checks rules 1, 2 and 4 early for better feedback, but the backend 
 | Compare offers | Read offers of my request | Request ID | List of offers with company, price, message | Sort by price only? |
 | Book a company | Accept an offer | Offer ID 311 | Offer `accepted`, request `assigned`, others `declined` — or error if the offer no longer exists or the request is already assigned | `PATCH` status or explicit action endpoint? |
 
-These are draft ideas in plain language, not implemented endpoints. The planned error responses are in [`data/error-examples.json`](data/error-examples.json). Final endpoints and the OpenAPI contract follow in Milestone 2.
+These are the ideas in plain language. The contract with the concrete endpoints is [`contracts/movematch.openapi.yaml`](contracts/movematch.openapi.yaml); the status of each operation is in [Implementation](#4-implementation). The planned error responses are in [`data/error-examples.json`](data/error-examples.json).
 
 ## 3. Project management
 
@@ -180,19 +180,21 @@ These are draft ideas in plain language, not implemented endpoints. The planned 
 | Question / decision | Current position | Next step |
 |---|---|---|
 | Scope of version 1 | Decided: Workflows A and B plus accepting an offer; payment, chat, maps API, reviews and verification are out | Confirm in the backend coaching (26 Oct) |
-| Moving date | Decided: the date must not lie in the past (earlier draft: 7 days minimum lead time, dropped) | Implement as input validation in Milestone 2 |
-| Request reference | Decided: `MM-<ID>` is built from the request ID and not stored | Add as read-only field in the OpenAPI contract |
+| Moving date | Decided: the date must not lie in the past (earlier draft: 7 days minimum lead time, dropped) | Implement as input validation when creating requests (planned, Workflow A) |
+| Request reference | Decided: `MM-<ID>` is built from the request ID and not stored | Done: read-only field `reference` in the contract and the API |
 | Deleting a request | Decided: real delete while not `assigned`; its pending offers are deleted with it | Implement in Milestone 2 (including the related offers) |
-| Changing or withdrawing an offer | Decided: offers cannot be edited; a pending offer can be withdrawn (deleted) and replaced by a new one; an accepted offer is binding; accepting an offer that no longer exists gives an error | Describe the error cases in the OpenAPI contract |
+| Changing or withdrawing an offer | Decided: offers cannot be edited; a pending offer can be withdrawn (deleted) and replaced by a new one; an accepted offer is binding; accepting an offer that no longer exists gives an error | Done for withdrawing and creating offers (rules 5, 6, 9); accepting follows |
 | Accepted offer | Decided: no `acceptedOfferId` on the request; the accepted offer is the offer with status `accepted` | Done in the data model draft |
 | Who sets a request to `completed`? | Decided: automatically after the moving date has passed; no manual step | Choose the technical approach in Milestone 2 (e.g. derive it when the request is read) |
 | Company cancels after assignment | Out of scope for version 1; accepted offers are binding. Possible later idea: reliability rating of companies | Revisit after the integration milestone |
 | Distance | Customer enters an approximate value in km | Ask in coaching; check a postal-code table as alternative |
 | Price formula and rates | Draft (see business rule 3) | Validate rates with one real quote or a moving company website |
-| Accepting an offer as an API operation | Tendency: explicit action endpoint | Decide when writing the OpenAPI contract |
+| Accepting an offer as an API operation | Tendency: explicit action endpoint | Contract lists `POST /offers/{offer_id}/accept` as planned; final decision when we implement it |
 | User table(s) and roles | Undecided | Define together in the persistence/security lessons (security class 23 Nov) |
 | Frontend technology | Undecided (allowed at this stage) | Decide before the integration milestone (16 Nov) |
-| API testing with Postman | Not done yet — none of us has worked with Postman so far | In Milestone 2 we test our own API (Swagger UI or Postman) with the sample JSON in `data/` |
+| API testing with Postman | Not used — none of us has worked with Postman so far | We test with automated pytest tests and the Swagger UI (`/docs`) using the sample JSON in `data/` |
+| Who is the acting company without login? | Decided for now: the temporary header `X-Company-Id` names the company; unknown company → 422 | Replace by real login and access checks in the security lesson (23 Nov) |
+| Flat offer endpoint | Decided: `POST /offers` with `movingRequestId` in the body, `GET/DELETE /offers/{offer_id}` | Add `GET /offers?movingRequestId=` to compare offers (planned) |
 | Comparing external APIs (e.g. a distance/maps service) | Not done yet | Only relevant if we pursue the distance extension above |
 
 ### Changes after the design coaching (5 October)
@@ -212,17 +214,102 @@ The feedback in the coaching was brief and we did not take minutes. What we took
 - `completed` is set automatically after the moving date.
 - The sketches were moved to `sketches/`; sketch 2a and the data model diagram were updated.
 
+### Changes after the backend coaching (26 October)
+
+To be filled in after the coaching: feedback received, corrections made, and the workflow chosen for the frontend integration.
+
 ### Milestone progress
 
 | Milestone | Available evidence | Status / next step |
 |---|---|---|
 | 1 — Design draft | Analysis, workflows A and B, sketches in `sketches/`, sample JSON in `data/`, proposed operations, open questions | Committed and revised after coaching (see above) |
-| 2 — Contract and available implementation | OpenAPI contract and implemented/tested progress | Update later |
+| 2 — Contract and available implementation | `contracts/movematch.openapi.yaml` (11 operations, 5 implemented and tested), FastAPI backend in `movematch/`, 48 automated tests in `tests/` | Committed; next: record coaching feedback (26 Oct) and choose the workflow for frontend integration |
 | Integration — later | Revised feature scope, frontend decision, architecture and a connected workflow | Update later |
 
 Contributions and decisions are described in this README; commit counts are not a measure of individual effort.
 
-## 4. References and acknowledgements
+## 4. Implementation
+
+### Responsibilities of the layers
+
+| Layer | File | Responsibility |
+|---|---|---|
+| HTTP interface | `movematch/api.py`, `movematch/models.py` | Parses and validates input (types, formats), calls the service, maps results and errors to status codes and the common error body `{"code", "message"}` |
+| Application logic | `movematch/service.py` | The business rules; no HTTP or FastAPI code. Raises `MoveMatchError` (`invalid_input`, `not_found`, `conflict`) |
+| Persistence | `movematch/storage.py`, `movematch/seed.json` | Reads and writes one JSON file (`movematch-data.json`) safely; creates it from the seed data on the first start |
+| Contract | `contracts/movematch.openapi.yaml` | Describes every operation with schemas, examples and errors, and its status: `planned`, `implemented` or `tested` |
+
+The service receives the store through its constructor (dependency injection), so tests can use a temporary file.
+
+### Operations: planned / implemented / tested
+
+| Operation | Endpoint | Status |
+|---|---|---|
+| List moving requests | `GET /moving-requests` | tested (no filters yet) |
+| Read one moving request | `GET /moving-requests/{id}` | tested |
+| Create offer | `POST /offers` (header `X-Company-Id`) | tested |
+| Read one offer | `GET /offers/{id}` | tested |
+| Withdraw offer | `DELETE /offers/{id}` | tested |
+| Create / change / delete moving request | `POST /moving-requests`, `PUT` / `DELETE /moving-requests/{id}` | planned |
+| List furniture types | `GET /furniture-types` | planned |
+| List offers of a request | `GET /offers?movingRequestId=` | planned |
+| Accept offer | `POST /offers/{id}/accept` | planned |
+
+### Where the business rules are enforced
+
+| Rule | Status | Where |
+|---|---|---|
+| 4 Price within the range | implemented | `service.create_offer` → 422 |
+| 5 One offer per company and request | implemented | `service.create_offer` → 409 |
+| 6 Request must accept offers | implemented | `service.create_offer` → 409 |
+| 9 Withdraw only while pending; last pending offer → request `open` | implemented | `service.delete_offer` → 409 |
+| 1, 2, 3 (date, quantities, price calculation) | planned | Workflow A (create request) |
+| 7 Accept an offer | planned | accept operation |
+| 8 Edit / delete a request | planned | request operations |
+| 10 `completed` after the moving date | planned | later |
+
+### Known limitations
+
+- No login: the temporary header `X-Company-Id` is used. There is no ownership check yet, so anyone can withdraw any pending offer (security lesson 23 Nov).
+- Moving requests are read-only and come from the seed data (requests 1038 `assigned`, 1042 `offers_received`, 1047 `open`; companies 7, 8, 9). The next new offer gets ID 311.
+- JSON file instead of a database; the real persistence follows in the persistence lesson.
+
+## 5. Execution
+
+Requires Python 3.13 (earlier 3.x may work).
+
+```
+python -m venv .venv
+.venv\Scripts\activate          # Windows;  macOS/Linux: source .venv/bin/activate
+pip install -r requirements-test.txt
+python -m uvicorn main:app --reload
+```
+
+The API runs at http://127.0.0.1:8000, interactive documentation (Swagger UI) at http://127.0.0.1:8000/docs. The file `movematch-data.json` is created on the first start; delete it (with the server stopped) to reset to the seed data.
+
+### Demo (Swagger UI or curl)
+
+1. `GET /moving-requests/1042` → 200, `reference` `MM-1042`, price range 1200–1600.
+2. `POST /offers` with header `X-Company-Id: 7` and body from `data/create-offer.json` → 201, `Location: /offers/311`, status `pending`.
+3. Repeat step 2 → 409 (company already has an offer, rule 5).
+4. `POST /offers` with header `X-Company-Id: 7` and body `{"movingRequestId": 1047, "price": 1750}` → 422 (range of this request is 700–900, rule 4).
+5. `POST /offers` for `movingRequestId` 1038 → 409 (request is assigned, rule 6).
+6. `DELETE /offers/311` → 204; `GET /offers/311` → 404.
+7. `DELETE /offers/305` → 409 (accepted offers are binding, rule 9).
+
+```
+curl -X POST http://127.0.0.1:8000/offers -H "Content-Type: application/json" -H "X-Company-Id: 7" -d @data/create-offer.json
+```
+
+### Tests
+
+```
+python -m pytest
+```
+
+`tests/test_api.py` checks success, invalid input and conflicts against the planned errors in `data/error-examples.json`. `tests/test_contract.py` checks that the contract and the implementation agree (operations, status codes, data shapes, real responses and all examples).
+
+## 6. References and acknowledgements
 
 - Course material Web-based Applications HS26 (FHNW, Dr. Devid Montecchiari): "Networks, the Web and APIs", "Web engineering and application design", "API design and lifecycle", project assignment and Milestone 1 README template.
-- Sketches, the data model diagram and the sample data were created digitally; parts of the text, sketches and sample data were drafted with AI assistance (Claude) and reviewed and adapted by the team.
+- Sketches, the data model diagram and the sample data were created digitally; parts of the text, sketches, sample data and the code (backend, tests, contract) were drafted with AI assistance (Claude) and reviewed and adapted by the team.

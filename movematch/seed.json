@@ -1,0 +1,218 @@
+{
+  "furniture_types": [
+    {
+      "id": 1,
+      "name": "Sofa",
+      "volumeM3": 2.0
+    },
+    {
+      "id": 2,
+      "name": "Bed",
+      "volumeM3": 1.5
+    },
+    {
+      "id": 3,
+      "name": "Wardrobe",
+      "volumeM3": 2.0
+    },
+    {
+      "id": 4,
+      "name": "Moving box",
+      "volumeM3": 0.15
+    }
+  ],
+  "customers": [
+    {
+      "id": 1,
+      "name": "Lena Meier",
+      "email": "lena.meier@example.com"
+    },
+    {
+      "id": 2,
+      "name": "Marc Weber",
+      "email": "marc.weber@example.com"
+    }
+  ],
+  "companies": [
+    {
+      "id": 7,
+      "name": "Umzüge Keller GmbH",
+      "regions": [
+        "BS",
+        "BL",
+        "ZH"
+      ],
+      "contactEmail": "dispatch@keller-umzuege.example"
+    },
+    {
+      "id": 8,
+      "name": "Rhein Transport AG",
+      "regions": [
+        "BS",
+        "BL"
+      ],
+      "contactEmail": "office@rhein-transport.example"
+    },
+    {
+      "id": 9,
+      "name": "Zügelprofi Basel",
+      "regions": [
+        "BS",
+        "BL"
+      ],
+      "contactEmail": "info@zuegelprofi-basel.example"
+    }
+  ],
+  "moving_requests": [
+    {
+      "id": 1038,
+      "customerId": 2,
+      "status": "assigned",
+      "fromAddress": {
+        "postalCode": "4051",
+        "city": "Basel",
+        "floor": 2,
+        "hasLift": true
+      },
+      "toAddress": {
+        "postalCode": "3011",
+        "city": "Bern",
+        "floor": 0,
+        "hasLift": true
+      },
+      "distanceKm": 100,
+      "movingDate": "2026-11-07",
+      "items": [
+        {
+          "furnitureTypeId": 1,
+          "quantity": 1
+        },
+        {
+          "furnitureTypeId": 2,
+          "quantity": 1
+        },
+        {
+          "furnitureTypeId": 4,
+          "quantity": 10
+        }
+      ],
+      "volumeM3": 5.0,
+      "priceMin": 850,
+      "priceMax": 1050,
+      "currency": "CHF"
+    },
+    {
+      "id": 1042,
+      "customerId": 1,
+      "status": "offers_received",
+      "fromAddress": {
+        "postalCode": "4057",
+        "city": "Basel",
+        "floor": 3,
+        "hasLift": false
+      },
+      "toAddress": {
+        "postalCode": "8004",
+        "city": "Zürich",
+        "floor": 1,
+        "hasLift": true
+      },
+      "distanceKm": 90,
+      "movingDate": "2026-11-14",
+      "items": [
+        {
+          "furnitureTypeId": 1,
+          "quantity": 1
+        },
+        {
+          "furnitureTypeId": 2,
+          "quantity": 1
+        },
+        {
+          "furnitureTypeId": 3,
+          "quantity": 2
+        },
+        {
+          "furnitureTypeId": 4,
+          "quantity": 20
+        }
+      ],
+      "volumeM3": 10.5,
+      "priceMin": 1200,
+      "priceMax": 1600,
+      "currency": "CHF"
+    },
+    {
+      "id": 1047,
+      "customerId": 2,
+      "status": "open",
+      "fromAddress": {
+        "postalCode": "4410",
+        "city": "Liestal",
+        "floor": 1,
+        "hasLift": false
+      },
+      "toAddress": {
+        "postalCode": "4051",
+        "city": "Basel",
+        "floor": 2,
+        "hasLift": true
+      },
+      "distanceKm": 15,
+      "movingDate": "2026-11-21",
+      "items": [
+        {
+          "furnitureTypeId": 1,
+          "quantity": 1
+        },
+        {
+          "furnitureTypeId": 3,
+          "quantity": 2
+        }
+      ],
+      "volumeM3": 6.0,
+      "priceMin": 700,
+      "priceMax": 900,
+      "currency": "CHF"
+    }
+  ],
+  "offers": [
+    {
+      "id": 305,
+      "movingRequestId": 1038,
+      "companyId": 7,
+      "price": 980,
+      "currency": "CHF",
+      "message": "Team of 3, arrival 08:00.",
+      "status": "accepted"
+    },
+    {
+      "id": 306,
+      "movingRequestId": 1038,
+      "companyId": 8,
+      "price": 1010,
+      "currency": "CHF",
+      "message": "Team of 2, arrival 07:30.",
+      "status": "declined"
+    },
+    {
+      "id": 309,
+      "movingRequestId": 1042,
+      "companyId": 8,
+      "price": 1320,
+      "currency": "CHF",
+      "message": "Team of 2, arrival 07:30.",
+      "status": "pending"
+    },
+    {
+      "id": 310,
+      "movingRequestId": 1042,
+      "companyId": 9,
+      "price": 1580,
+      "currency": "CHF",
+      "message": "Incl. packing.",
+      "status": "pending"
+    }
+  ],
+  "next_offer_id": 311
+}
