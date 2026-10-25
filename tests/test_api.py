@@ -221,3 +221,9 @@ def test_unknown_path_and_wrong_method_use_the_same_error_format(client):
     assert missing.status_code == 404 and missing.json()["code"] == "not_found"
     wrong = client.put("/offers/309", json=CREATE_OFFER)  # PUT is not part of the API
     assert wrong.status_code == 405 and wrong.json()["code"] == "method_not_allowed"
+
+
+def test_start_page_redirects_to_the_documentation(client):
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 307 and response.headers["location"] == "/docs"
+    assert client.get("/docs").status_code == 200

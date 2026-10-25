@@ -223,7 +223,7 @@ To be filled in after the coaching: feedback received, corrections made, and the
 | Milestone | Available evidence | Status / next step |
 |---|---|---|
 | 1 — Design draft | Analysis, workflows A and B, sketches in `sketches/`, sample JSON in `data/`, proposed operations, open questions | Committed and revised after coaching (see above) |
-| 2 — Contract and available implementation | `contracts/movematch.openapi.yaml` (11 operations, 5 implemented and tested), FastAPI backend in `movematch/`, 48 automated tests in `tests/` | Committed; next: record coaching feedback (26 Oct) and choose the workflow for frontend integration |
+| 2 — Contract and available implementation | `contracts/movematch.openapi.yaml` (11 operations, 5 implemented and tested), FastAPI backend in `movematch/`, 49 automated tests in `tests/` | Committed; next: record coaching feedback (26 Oct) and choose the workflow for frontend integration |
 | Integration — later | Revised feature scope, frontend decision, architecture and a connected workflow | Update later |
 
 Contributions and decisions are described in this README; commit counts are not a measure of individual effort.
@@ -285,7 +285,18 @@ pip install -r requirements-test.txt
 python -m uvicorn main:app --reload
 ```
 
-The API runs at http://127.0.0.1:8000, interactive documentation (Swagger UI) at http://127.0.0.1:8000/docs. The file `movematch-data.json` is created on the first start; delete it (with the server stopped) to reset to the seed data.
+The API runs at http://127.0.0.1:8000. Opening this address leads directly to the interactive documentation (Swagger UI) at http://127.0.0.1:8000/docs, where every endpoint can be tried out. The file `movematch-data.json` is created on the first start; delete it (with the server stopped) to reset to the seed data.
+
+### Start in GitHub Codespaces (no local installation)
+
+1. On the repository page click **Code → Codespaces → Create codespace on main**.
+2. In the terminal of the Codespace run:
+   ```
+   pip install -r requirements-test.txt
+   python -m uvicorn main:app
+   ```
+3. Click **Open in Browser** in the "Port 8000" notification. The Swagger UI opens; there, **Try it out → Execute** runs a request.
+4. Run `python -m pytest` in a second terminal to execute the tests. Stop the server with `Ctrl+C`.
 
 ### Demo (Swagger UI or curl)
 

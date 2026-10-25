@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, Path as PathParameter, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.exceptions import HTTPException
 
 from .models import Error, MovingRequest, Offer, OfferInput
@@ -51,6 +51,11 @@ def create_app(data_file: Path) -> FastAPI:
         code = {404: "not_found", 405: "method_not_allowed"}.get(error.status_code, "http_error")
         return JSONResponse(status_code=error.status_code, headers=error.headers,
                             content={"code": code, "message": str(error.detail)})
+
+    # Convenience: the start page leads to the interactive documentation (not part of the contract).
+    @app.get("/", include_in_schema=False)
+    def start_page():
+        return RedirectResponse("/docs")
 
     # ----- moving requests (read only) -----------------------------------------------------------
     @app.get("/moving-requests", response_model=list[MovingRequest], tags=["Moving requests"],
