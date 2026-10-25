@@ -1,0 +1,11 @@
+# Application packages plus tools for the automated checks.
+-r requirements.txt
+
+# HTTP client used by FastAPI's TestClient.
+httpx==0.28.1
+# Runs the automated checks.
+pytest==9.1.1
+# Validates responses and examples against the JSON schemas in the OpenAPI contract.
+jsonschema==4.26.0
+# Reads the YAML contract.
+pyyaml==6.0.3
