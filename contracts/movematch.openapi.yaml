@@ -1,0 +1,563 @@
+openapi: 3.1.0
+info:
+  title: MoveMatch API
+  version: 0.1.0
+  description: |
+    API contract for MoveMatch, a marketplace where customers publish moving requests and moving companies
+    send offers within a price range.
+
+    **Status of each operation** (vendor extension `x-implementation-status`):
+    `planned` = only described here; `implemented` = available in the FastAPI backend;
+    `tested` = implemented and covered by automated tests (`tests/`).
+
+    **Known limitations (Milestone 2):**
+    - There is no login yet. The acting company is named by the temporary header `X-Company-Id`;
+      real authentication and access checks follow in the security lesson.
+    - Moving requests are read-only in the running backend (they come from `movematch/seed.json`).
+      Creating, changing and deleting requests, filters and accepting an offer are planned.
+
+    Errors always have the body `{"code": ..., "message": ...}`. `422` = invalid input or a violated
+    business rule on the input, `409` = valid input but the current state does not allow it, `404` = not found.
+servers:
+  - url: http://127.0.0.1:8000
+    description: Local development server (python -m uvicorn main:app)
+tags:
+  - name: Furniture types
+  - name: Moving requests
+  - name: Offers
+
+paths:
+  /furniture-types:
+    get:
+      tags: [Furniture types]
+      operationId: listFurnitureTypes
+      summary: List the furniture catalogue
+      x-implementation-status: planned
+      responses:
+        "200":
+          description: All furniture types with their volume.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/FurnitureType"}
+              examples:
+                catalogue:
+                  value:
+                    - {id: 1, name: Sofa, volumeM3: 2.0}
+                    - {id: 2, name: Bed, volumeM3: 1.5}
+                    - {id: 3, name: Wardrobe, volumeM3: 2.0}
+                    - {id: 4, name: Moving box, volumeM3: 0.15}
+
+  /moving-requests:
+    get:
+      tags: [Moving requests]
+      operationId: listMovingRequests
+      summary: List moving requests
+      description: |
+        Implemented: returns all requests. Planned: the filters of the marketplace (date range, canton)
+        and showing only requests that are `open` or `offers_received`.
+      x-implementation-status: tested
+      responses:
+        "200":
+          description: The moving requests.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/MovingRequest"}
+    post:
+      tags: [Moving requests]
+      operationId: createMovingRequest
+      summary: Publish a moving request (Workflow A)
+      description: |
+        Planned. The backend calculates volume and price range (rule 3), sets the status `open`
+        and the customer from the login.
+      x-implementation-status: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/MovingRequestInput"}
+            examples:
+              lenaMove:
+                value:
+                  fromAddress: {postalCode: "4057", city: Basel, floor: 3, hasLift: false}
+                  toAddress: {postalCode: "8004", city: Zürich, floor: 1, hasLift: true}
+                  distanceKm: 90
+                  movingDate: "2026-11-14"
+                  items:
+                    - {furnitureTypeId: 1, quantity: 1}
+                    - {furnitureTypeId: 2, quantity: 1}
+                    - {furnitureTypeId: 3, quantity: 2}
+                    - {furnitureTypeId: 4, quantity: 20}
+      responses:
+        "201":
+          description: The saved request.
+          headers:
+            Location: {$ref: "#/components/headers/Location"}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MovingRequest"}
+              examples:
+                created: {$ref: "#/components/examples/MovingRequestOpen"}
+        "422":
+          description: Invalid input, for example a moving date in the past (rule 1).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                datePast: {$ref: "#/components/examples/ErrorDateInPast"}
+
+  /moving-requests/{moving_request_id}:
+    parameters:
+      - $ref: "#/components/parameters/MovingRequestId"
+    get:
+      tags: [Moving requests]
+      operationId: readMovingRequest
+      summary: Read one moving request
+      x-implementation-status: tested
+      responses:
+        "200":
+          description: The request, including the derived `reference` and its price range.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MovingRequest"}
+              examples:
+                request: {$ref: "#/components/examples/MovingRequestOpen"}
+        "404":
+          description: No request with this ID.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                notFound: {$ref: "#/components/examples/ErrorNotFound"}
+        "422":
+          description: The ID is not a positive whole number.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                badId: {$ref: "#/components/examples/ErrorBadId"}
+    put:
+      tags: [Moving requests]
+      operationId: replaceMovingRequest
+      summary: Change a moving request
+      description: Planned. Only while the request is `open` (rule 8); the price range is recalculated.
+      x-implementation-status: planned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/MovingRequestInput"}
+      responses:
+        "200":
+          description: The updated request.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/MovingRequest"}
+        "404":
+          description: No request with this ID.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+        "409":
+          description: The request already has offers or is assigned.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                notOpen: {$ref: "#/components/examples/ErrorOnlyOpenCanBeEdited"}
+        "422":
+          description: Invalid input.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+    delete:
+      tags: [Moving requests]
+      operationId: deleteMovingRequest
+      summary: Delete a moving request
+      description: Planned. Really deletes the request and its pending offers; only while it is not `assigned` (rule 8).
+      x-implementation-status: planned
+      responses:
+        "204":
+          description: Deleted.
+        "404":
+          description: No request with this ID.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+        "409":
+          description: The request is already assigned.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                assigned: {$ref: "#/components/examples/ErrorAssignedCannotBeDeleted"}
+        "422":
+          description: The ID is not a positive whole number.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+
+  /offers:
+    get:
+      tags: [Offers]
+      operationId: listOffers
+      summary: List the offers of a request
+      description: Planned. Lets the customer compare offers.
+      x-implementation-status: planned
+      parameters:
+        - name: movingRequestId
+          in: query
+          required: true
+          schema: {type: integer, minimum: 1}
+          example: 1042
+      responses:
+        "200":
+          description: The offers of this request.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Offer"}
+        "422":
+          description: Missing or invalid query parameter.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+    post:
+      tags: [Offers]
+      operationId: createOffer
+      summary: Submit an offer (Workflow B, step 4)
+      description: |
+        Checks, in this order: the request exists (404), the company exists (422), the request still accepts
+        offers (rule 6, 409), the company has no offer on this request yet (rule 5, 409) and the price lies
+        within the range of the request (rule 4, 422). On success the offer is `pending`; an `open` request
+        becomes `offers_received`.
+      x-implementation-status: tested
+      parameters:
+        - $ref: "#/components/parameters/CompanyId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/OfferInput"}
+            examples:
+              keller:
+                summary: Umzüge Keller offers CHF 1,450 (company 7)
+                value:
+                  movingRequestId: 1042
+                  price: 1450
+                  message: "Team of 3, arrival 08:00."
+      responses:
+        "201":
+          description: The saved offer.
+          headers:
+            Location: {$ref: "#/components/headers/Location"}
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Offer"}
+              examples:
+                created: {$ref: "#/components/examples/OfferPending"}
+        "404":
+          description: The request does not exist.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                notFound: {$ref: "#/components/examples/ErrorNotFound"}
+        "409":
+          description: The request no longer accepts offers, or the company already has an offer on it.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                notAcceptingOffers: {$ref: "#/components/examples/ErrorNotAcceptingOffers"}
+                alreadyOffered: {$ref: "#/components/examples/ErrorAlreadyOffered"}
+        "422":
+          description: Invalid input, unknown company or a price outside the range.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                priceOutOfRange: {$ref: "#/components/examples/ErrorPriceOutOfRange"}
+                unknownCompany: {$ref: "#/components/examples/ErrorUnknownCompany"}
+
+  /offers/{offer_id}:
+    parameters:
+      - $ref: "#/components/parameters/OfferId"
+    get:
+      tags: [Offers]
+      operationId: readOffer
+      summary: Read one offer
+      x-implementation-status: tested
+      responses:
+        "200":
+          description: The offer.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Offer"}
+              examples:
+                offer: {$ref: "#/components/examples/OfferPending"}
+        "404":
+          description: No offer with this ID.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                notFound: {$ref: "#/components/examples/ErrorNotFound"}
+        "422":
+          description: The ID is not a positive whole number.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                badId: {$ref: "#/components/examples/ErrorBadId"}
+    delete:
+      tags: [Offers]
+      operationId: withdrawOffer
+      summary: Withdraw an offer (Workflow B, step 6)
+      description: |
+        Really deletes the offer (rule 9). Only a `pending` offer can be withdrawn; an accepted offer is binding.
+        If it was the last pending offer, the request returns to `open`. Offers cannot be edited:
+        withdraw and submit a new one. Access control (only the own offer) follows in the security lesson.
+      x-implementation-status: tested
+      responses:
+        "204":
+          description: The offer was deleted.
+        "404":
+          description: No offer with this ID.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                notFound: {$ref: "#/components/examples/ErrorNotFound"}
+        "409":
+          description: The offer is not pending (accepted offers are binding).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                accepted: {$ref: "#/components/examples/ErrorAcceptedIsBinding"}
+                declined: {$ref: "#/components/examples/ErrorOnlyPendingWithdrawn"}
+        "422":
+          description: The ID is not a positive whole number.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                badId: {$ref: "#/components/examples/ErrorBadId"}
+
+  /offers/{offer_id}/accept:
+    parameters:
+      - $ref: "#/components/parameters/OfferId"
+    post:
+      tags: [Offers]
+      operationId: acceptOffer
+      summary: Accept an offer (Workflow A, step 5)
+      description: |
+        Planned (explicit action endpoint; the final choice is still open, see README). In one step the offer
+        becomes `accepted`, all other offers of the request become `declined` and the request becomes
+        `assigned` (rule 7).
+      x-implementation-status: planned
+      responses:
+        "200":
+          description: The accepted offer.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Offer"}
+              examples:
+                accepted:
+                  value:
+                    id: 311
+                    movingRequestId: 1042
+                    companyId: 7
+                    price: 1450
+                    currency: CHF
+                    message: "Team of 3, arrival 08:00."
+                    status: accepted
+        "404":
+          description: The offer does not exist (for example it was withdrawn in the meantime).
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                notFound: {$ref: "#/components/examples/ErrorNotFound"}
+        "409":
+          description: The offer is not pending or the request already has an accepted offer.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+        "422":
+          description: The ID is not a positive whole number.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+
+components:
+  parameters:
+    MovingRequestId:
+      name: moving_request_id
+      in: path
+      required: true
+      schema: {type: integer, minimum: 1}
+      example: 1042
+    OfferId:
+      name: offer_id
+      in: path
+      required: true
+      schema: {type: integer, minimum: 1}
+      example: 311
+    CompanyId:
+      name: X-Company-Id
+      in: header
+      required: true
+      description: Temporary stand-in for the login (security lesson). The ID of the acting company.
+      schema: {type: integer, minimum: 1}
+      example: 7
+
+  headers:
+    Location:
+      description: Relative URL of the created resource.
+      schema: {type: string}
+
+  schemas:
+    Address:
+      type: object
+      required: [postalCode, city, floor, hasLift]
+      properties:
+        postalCode: {type: string, pattern: "^[0-9]{4}$"}
+        city: {type: string, minLength: 1}
+        floor: {type: integer, minimum: 0}
+        hasLift: {type: boolean}
+    RequestItem:
+      type: object
+      description: One kind of furniture and how many of it. The quantity belongs to the item, not to the furniture type.
+      required: [furnitureTypeId, quantity]
+      properties:
+        furnitureTypeId: {type: integer, minimum: 1}
+        quantity: {type: integer, minimum: 0}
+    FurnitureType:
+      type: object
+      required: [id, name, volumeM3]
+      properties:
+        id: {type: integer, minimum: 1}
+        name: {type: string}
+        volumeM3: {type: number}
+    MovingRequestInput:
+      type: object
+      description: What the customer sends. At least one item must have a quantity of 1 or more (rule 2).
+      required: [fromAddress, toAddress, distanceKm, movingDate, items]
+      properties:
+        fromAddress: {$ref: "#/components/schemas/Address"}
+        toAddress: {$ref: "#/components/schemas/Address"}
+        distanceKm: {type: integer, minimum: 1}
+        movingDate: {type: string, format: date, description: "ISO date; must not lie in the past (rule 1)."}
+        items:
+          type: array
+          minItems: 1
+          items: {$ref: "#/components/schemas/RequestItem"}
+    MovingRequest:
+      type: object
+      required: [id, reference, customerId, status, fromAddress, toAddress, distanceKm, movingDate, items,
+                 volumeM3, priceMin, priceMax, currency]
+      properties:
+        id: {type: integer, minimum: 1}
+        reference:
+          type: string
+          readOnly: true
+          description: Display format "MM-" + id. Derived from the ID, not stored.
+        customerId: {type: integer, minimum: 1}
+        status: {type: string, enum: [open, offers_received, assigned, completed]}
+        fromAddress: {$ref: "#/components/schemas/Address"}
+        toAddress: {$ref: "#/components/schemas/Address"}
+        distanceKm: {type: integer, minimum: 1}
+        movingDate: {type: string, format: date}
+        items:
+          type: array
+          items: {$ref: "#/components/schemas/RequestItem"}
+        volumeM3: {type: number}
+        priceMin: {type: integer, minimum: 1, description: Lower limit of the price range in CHF.}
+        priceMax: {type: integer, minimum: 1, description: Upper limit of the price range in CHF.}
+        currency: {type: string, const: CHF}
+    OfferInput:
+      type: object
+      description: "What the company sends. The company comes from the `X-Company-Id` header (later: the login)."
+      required: [movingRequestId, price]
+      additionalProperties: false
+      properties:
+        movingRequestId: {type: integer, minimum: 1}
+        price: {type: integer, minimum: 1, description: Whole CHF; must lie within the price range of the request (rule 4).}
+        message: {type: [string, "null"], maxLength: 500}
+    Offer:
+      type: object
+      required: [id, movingRequestId, companyId, price, currency, status]
+      properties:
+        id: {type: integer, minimum: 1}
+        movingRequestId: {type: integer, minimum: 1}
+        companyId: {type: integer, minimum: 1}
+        price: {type: integer, minimum: 1}
+        currency: {type: string, const: CHF}
+        message: {type: [string, "null"]}
+        status: {type: string, enum: [pending, accepted, declined]}
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: "`invalid_input` (422), `not_found` (404), `conflict` (409) or `method_not_allowed` (405)."
+        message: {type: string}
+
+  examples:
+    MovingRequestOpen:
+      value:
+        id: 1042
+        reference: MM-1042
+        customerId: 1
+        status: open
+        fromAddress: {postalCode: "4057", city: Basel, floor: 3, hasLift: false}
+        toAddress: {postalCode: "8004", city: Zürich, floor: 1, hasLift: true}
+        distanceKm: 90
+        movingDate: "2026-11-14"
+        items:
+          - {furnitureTypeId: 1, quantity: 1}
+          - {furnitureTypeId: 2, quantity: 1}
+          - {furnitureTypeId: 3, quantity: 2}
+          - {furnitureTypeId: 4, quantity: 20}
+        volumeM3: 10.5
+        priceMin: 1200
+        priceMax: 1600
+        currency: CHF
+    OfferPending:
+      value:
+        id: 311
+        movingRequestId: 1042
+        companyId: 7
+        price: 1450
+        currency: CHF
+        message: "Team of 3, arrival 08:00."
+        status: pending
+    ErrorNotFound:
+      value: {code: not_found, message: Requested resource not found.}
+    ErrorBadId:
+      value: {code: invalid_input, message: "path.offer_id: Input should be greater than or equal to 1"}
+    ErrorDateInPast:
+      value: {code: invalid_input, message: "movingDate: must not lie in the past."}
+    ErrorPriceOutOfRange:
+      value: {code: invalid_input, message: "price: must be between 1200 and 1600 CHF."}
+    ErrorUnknownCompany:
+      value: {code: invalid_input, message: "X-Company-Id: unknown company."}
+    ErrorNotAcceptingOffers:
+      value: {code: conflict, message: Offers are only possible while the request is open or has offers.}
+    ErrorAlreadyOffered:
+      value: {code: conflict, message: This company already has an offer on this request.}
+    ErrorOnlyOpenCanBeEdited:
+      value: {code: conflict, message: A request can only be edited while it is open.}
+    ErrorAssignedCannotBeDeleted:
+      value: {code: conflict, message: An assigned request cannot be deleted.}
+    ErrorAcceptedIsBinding:
+      value: {code: conflict, message: An accepted offer is binding and cannot be withdrawn.}
+    ErrorOnlyPendingWithdrawn:
+      value: {code: conflict, message: Only a pending offer can be withdrawn.}
