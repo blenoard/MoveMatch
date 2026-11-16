@@ -9,6 +9,7 @@ Four checks:
    plan (data/error-examples.json) are identical to it.
 """
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -87,7 +88,8 @@ def test_operation_ids_match_the_app(app_spec):
 
 
 # ----- 2. data shapes ----------------------------------------------------------------------------------
-@pytest.mark.parametrize("name", ["Address", "RequestItem", "MovingRequest", "OfferInput", "Offer", "Error"])
+@pytest.mark.parametrize("name", ["Address", "RequestItem", "FurnitureType", "MovingRequestInput", "MovingRequest",
+                                  "OfferInput", "Offer", "Error"])
 def test_schema_fields_match_the_app(app_spec, name):
     app_schema = app_spec["components"]["schemas"][name]
     contract_schema = CONTRACT["components"]["schemas"][name]
@@ -157,7 +159,38 @@ def test_planned_error_examples_equal_the_plan_in_data():
         "ErrorAlreadyOffered": (5, "Company already has an offer"),
         "ErrorNotAcceptingOffers": (6, "Request no longer accepts offers"),
         "ErrorAcceptedIsBinding": (9, "Withdraw an accepted offer"),
+        "ErrorDateInPast": (1, "Moving date lies in the past"),
+        "ErrorNoItems": (2, "No furniture item"),
+        "ErrorAlreadyAccepted": (7, "Request already has an accepted offer"),
+        "ErrorOnlyOpenCanBeEdited": (8, "Edit a request"),
+        "ErrorAssignedCannotBeDeleted": (8, "Delete a request"),
     }
     for name, (rule, case) in pairs.items():
         planned = next(e for e in PLAN if e["rule"] == rule and e["case"].startswith(case))
         assert examples[name]["value"] == planned["response"]
+
+
+def test_live_responses_of_the_request_operations_conform_to_the_contract(tmp_path):
+    """Milestone 3: the operations around moving requests and accepting an offer (with a fixed date)."""
+    body = json.loads((ROOT / "data" / "create-moving-request.json").read_text(encoding="utf-8"))
+    with TestClient(create_app(tmp_path / "movematch.json", today=lambda: date(2026, 10, 20))) as client:
+        for furniture in client.get("/furniture-types").json():
+            validator("FurnitureType").validate(furniture)
+        validator("MovingRequestInput").validate(body)
+        created = client.post("/moving-requests", json=body, headers={"X-Customer-Id": "1"})
+        assert created.status_code == 201
+        validator("MovingRequest").validate(created.json())
+        validator("MovingRequest").validate(client.put(created.headers["Location"], json=body).json())
+        for offer in client.get("/offers", params={"movingRequestId": 1042}).json():
+            validator("Offer").validate(offer)
+        validator("Offer").validate(client.post("/offers/309/accept").json())
+        errors = [
+            client.post("/moving-requests", json={**body, "movingDate": "2026-10-06"}, headers={"X-Customer-Id": "1"}),
+            client.put("/moving-requests/1042", json=body),
+            client.delete("/moving-requests/1038"),
+            client.post("/offers/310/accept"),
+            client.get("/offers"),
+        ]
+        assert [e.status_code for e in errors] == [422, 409, 409, 409, 422]
+        for response in errors:
+            validator("Error").validate(response.json())
