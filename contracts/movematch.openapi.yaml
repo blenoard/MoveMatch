@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: MoveMatch API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     API contract for MoveMatch, a marketplace where customers publish moving requests and moving companies
     send offers within a price range.
@@ -10,11 +10,10 @@ info:
     `planned` = only described here; `implemented` = available in the FastAPI backend;
     `tested` = implemented and covered by automated tests (`tests/`).
 
-    **Known limitations (Milestone 2):**
-    - There is no login yet. The acting company is named by the temporary header `X-Company-Id`;
-      real authentication and access checks follow in the security lesson.
-    - Moving requests are read-only in the running backend (they come from `movematch/seed.json`).
-      Creating, changing and deleting requests, filters and accepting an offer are planned.
+    **Known limitations (Milestone 3):**
+    - There is no login yet. The acting company is named by the temporary header `X-Company-Id` and the
+      acting customer by `X-Customer-Id`; real authentication and access checks follow in the security lesson.
+    - The list of moving requests has no filters yet; the browser interface filters the list itself.
 
     Errors always have the body `{"code": ..., "message": ...}`. `422` = invalid input or a violated
     business rule on the input, `409` = valid input but the current state does not allow it, `404` = not found.
@@ -32,7 +31,7 @@ paths:
       tags: [Furniture types]
       operationId: listFurnitureTypes
       summary: List the furniture catalogue
-      x-implementation-status: planned
+      x-implementation-status: tested
       responses:
         "200":
           description: All furniture types with their volume.
@@ -71,9 +70,13 @@ paths:
       operationId: createMovingRequest
       summary: Publish a moving request (Workflow A)
       description: |
-        Planned. The backend calculates volume and price range (rule 3), sets the status `open`
-        and the customer from the login.
-      x-implementation-status: planned
+        Checks, in this order: the customer exists (422), the moving date does not lie in the past (rule 1, 422),
+        every furniture type exists and appears once (422) and at least one item has a quantity of 1 or more
+        (rule 2, 422). The backend then calculates volume and price range (rule 3) and saves the request with
+        the status `open`.
+      x-implementation-status: tested
+      parameters:
+        - $ref: "#/components/parameters/CustomerId"
       requestBody:
         required: true
         content:
@@ -102,12 +105,14 @@ paths:
               examples:
                 created: {$ref: "#/components/examples/MovingRequestOpen"}
         "422":
-          description: Invalid input, for example a moving date in the past (rule 1).
+          description: Invalid input, for example a moving date in the past (rule 1), or an unknown customer.
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Error"}
               examples:
                 datePast: {$ref: "#/components/examples/ErrorDateInPast"}
+                noItems: {$ref: "#/components/examples/ErrorNoItems"}
+                unknownCustomer: {$ref: "#/components/examples/ErrorUnknownCustomer"}
 
   /moving-requests/{moving_request_id}:
     parameters:
@@ -116,6 +121,9 @@ paths:
       tags: [Moving requests]
       operationId: readMovingRequest
       summary: Read one moving request
+      description: |
+        An `assigned` request is returned as `completed` once its moving date has passed (rule 10). This
+        status is derived when the request is read; it is not stored.
       x-implementation-status: tested
       responses:
         "200":
@@ -143,8 +151,10 @@ paths:
       tags: [Moving requests]
       operationId: replaceMovingRequest
       summary: Change a moving request
-      description: Planned. Only while the request is `open` (rule 8); the price range is recalculated.
-      x-implementation-status: planned
+      description: |
+        Only while the request is `open` (rule 8). The input is checked like a new request and the volume and
+        price range are recalculated. Access control (only the own request) follows in the security lesson.
+      x-implementation-status: tested
       requestBody:
         required: true
         content:
@@ -177,8 +187,10 @@ paths:
       tags: [Moving requests]
       operationId: deleteMovingRequest
       summary: Delete a moving request
-      description: Planned. Really deletes the request and its pending offers; only while it is not `assigned` (rule 8).
-      x-implementation-status: planned
+      description: |
+        Really deletes the request and its pending offers; only while it is not `assigned` (rule 8).
+        Access control (only the own request) follows in the security lesson.
+      x-implementation-status: tested
       responses:
         "204":
           description: Deleted.
@@ -205,8 +217,8 @@ paths:
       tags: [Offers]
       operationId: listOffers
       summary: List the offers of a request
-      description: Planned. Lets the customer compare offers.
-      x-implementation-status: planned
+      description: Lets the customer compare offers. A request without offers gives an empty list.
+      x-implementation-status: tested
       parameters:
         - name: movingRequestId
           in: query
@@ -357,10 +369,10 @@ paths:
       operationId: acceptOffer
       summary: Accept an offer (Workflow A, step 5)
       description: |
-        Planned (explicit action endpoint; the final choice is still open, see README). In one step the offer
-        becomes `accepted`, all other offers of the request become `declined` and the request becomes
-        `assigned` (rule 7).
-      x-implementation-status: planned
+        Explicit action endpoint. In one step the offer becomes `accepted`, all other offers of the request
+        become `declined` and the request becomes `assigned` (rule 7). Access control (only the customer of
+        the request) follows in the security lesson.
+      x-implementation-status: tested
       responses:
         "200":
           description: The accepted offer.
@@ -389,6 +401,8 @@ paths:
           content:
             application/json:
               schema: {$ref: "#/components/schemas/Error"}
+              examples:
+                alreadyAccepted: {$ref: "#/components/examples/ErrorAlreadyAccepted"}
         "422":
           description: The ID is not a positive whole number.
           content:
@@ -416,6 +430,13 @@ components:
       description: Temporary stand-in for the login (security lesson). The ID of the acting company.
       schema: {type: integer, minimum: 1}
       example: 7
+    CustomerId:
+      name: X-Customer-Id
+      in: header
+      required: true
+      description: Temporary stand-in for the login (security lesson). The ID of the acting customer.
+      schema: {type: integer, minimum: 1}
+      example: 1
 
   headers:
     Location:
@@ -449,6 +470,7 @@ components:
       type: object
       description: What the customer sends. At least one item must have a quantity of 1 or more (rule 2).
       required: [fromAddress, toAddress, distanceKm, movingDate, items]
+      additionalProperties: false
       properties:
         fromAddress: {$ref: "#/components/schemas/Address"}
         toAddress: {$ref: "#/components/schemas/Address"}
@@ -545,6 +567,10 @@ components:
       value: {code: invalid_input, message: "path.offer_id: Input should be greater than or equal to 1"}
     ErrorDateInPast:
       value: {code: invalid_input, message: "movingDate: must not lie in the past."}
+    ErrorNoItems:
+      value: {code: invalid_input, message: "items: at least one item with a quantity of 1 or more is required."}
+    ErrorUnknownCustomer:
+      value: {code: invalid_input, message: "X-Customer-Id: unknown customer."}
     ErrorPriceOutOfRange:
       value: {code: invalid_input, message: "price: must be between 1200 and 1600 CHF."}
     ErrorUnknownCompany:
@@ -557,6 +583,8 @@ components:
       value: {code: conflict, message: A request can only be edited while it is open.}
     ErrorAssignedCannotBeDeleted:
       value: {code: conflict, message: An assigned request cannot be deleted.}
+    ErrorAlreadyAccepted:
+      value: {code: conflict, message: This request already has an accepted offer.}
     ErrorAcceptedIsBinding:
       value: {code: conflict, message: An accepted offer is binding and cannot be withdrawn.}
     ErrorOnlyPendingWithdrawn:
