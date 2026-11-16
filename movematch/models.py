@@ -24,6 +24,21 @@ class RequestItem(BaseModel):
     quantity: int = Field(strict=True, ge=0)
 
 
+class FurnitureType(BaseModel):
+    id: PositiveInt
+    name: str
+    volumeM3: float
+
+
+class MovingRequestInput(InputModel):
+    """What the customer sends. Volume, price range, status and customer are set by the backend."""
+    fromAddress: Address
+    toAddress: Address
+    distanceKm: PositiveInt
+    movingDate: date
+    items: list[RequestItem] = Field(min_length=1)
+
+
 class MovingRequest(BaseModel):
     id: PositiveInt
     reference: str  # "MM-" + id, derived by the service and not stored
