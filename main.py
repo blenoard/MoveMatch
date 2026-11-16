@@ -1,4 +1,4 @@
-"""Start the API:  python -m uvicorn main:app --reload   (then open http://127.0.0.1:8000/docs)"""
+"""Start the API: python -m uvicorn main:app --reload (then open http://127.0.0.1:8000/app/)"""
 import os
 from pathlib import Path
 
