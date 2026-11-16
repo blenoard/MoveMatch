@@ -1,8 +1,8 @@
 # MoveMatch
 
-**Current stage:** Milestone 2 — OpenAPI contract and first implemented part of the backend (offers: submit and withdraw). The design from Milestone 1 was revised after the design coaching (see [Changes after the design coaching](#changes-after-the-design-coaching-5-october)). This README is updated throughout the project; we do not start a separate document for each milestone.
+**Current stage:** Milestone 3 (integration). All 11 operations of the OpenAPI contract are implemented and tested, and a browser interface connects both workflows to the API and the stored data (see [Integration](#integration-milestone-3)). The design from Milestone 1 was revised after the design coaching (see [Changes after the design coaching](#changes-after-the-design-coaching-5-october)). This README is updated throughout the project; we do not start a separate document for each milestone.
 
-The backend is **not complete**: only the first workflow slice is implemented (see [Implementation](#4-implementation)). All other operations are planned in the contract. The frontend, login and the database come in later milestones.
+The application is **not finished**: there is no login yet (the acting user is chosen in the interface and sent as a header), the data is stored in a JSON file and the marketplace filter runs in the browser. See [Known limitations](#known-limitations).
 
 ## Project overview
 
@@ -114,7 +114,7 @@ Digital versions of our sketches:
 | Request detail + offer form | Company | Submit an offer |
 | My offers | Company | See the status of own offers; withdraw a pending offer |
 
-A clickable prototype (Bootstrap Studio) is planned but not yet available. The frontend technology is still undecided.
+The interface is now implemented with plain HTML, CSS and JavaScript (see [Integration](#integration-milestone-3)). The planned Bootstrap Studio prototype is not available.
 
 ### Domain concepts and example data
 
@@ -140,7 +140,7 @@ All example data is fictional.
 - Units are part of the key name (`distanceKm`, `volumeM3`); prices are whole CHF with a separate `currency` field.
 - The reference `MM-1042` is only a display format: it is built from the request ID (`"MM-"` + ID) and returned as a read-only field `reference`. It is not stored separately, so it cannot disagree with the ID.
 - An offer references its request (`movingRequestId`) and company (`companyId`). There is no `acceptedOfferId` on the request: the accepted offer is the offer of that request with status `accepted` (at most one per request). Storing it in both places would allow the two to disagree.
-- `customerId` and `companyId` are not sent by the client. They belong to the logged-in user (login follows in the security lesson; until then a fixed demo user is possible — to be decided).
+- `customerId` and `companyId` are not sent in the body. They belong to the logged-in user. Until the security lesson the interface offers a list of demo users, and the choice is sent as the header `X-Customer-Id` or `X-Company-Id`.
 - Status values: request `open`, `offers_received`, `assigned`, `completed`; offer `pending`, `accepted`, `declined`. A deleted request or offer is really removed, so there is no `withdrawn` status.
 
 ### Business rules and possible operations
@@ -157,7 +157,7 @@ All example data is fictional.
 9. An offer cannot be edited. A company can withdraw (delete) its own offer while it is `pending`; if it was the last pending offer, the request returns to `open`. An accepted offer is binding and cannot be withdrawn.
 10. An `assigned` request becomes `completed` automatically once its moving date has passed. Nobody sets this status manually in version 1.
 
-The frontend checks rules 1, 2 and 4 early for better feedback, but the backend service logic is the authority, because the API can also be called without our frontend. Where each rule is enforced is documented in [Implementation](#4-implementation).
+The interface does not repeat the rules: it sends the input to the API and shows the message of the API at the form, with all input kept. The backend service logic is the authority, because the API can also be called without our frontend. Where each rule is enforced is documented in [Implementation](#4-implementation).
 
 | User goal | Proposed action | Example input | Expected output | Open question |
 |---|---|---|---|---|
@@ -180,21 +180,21 @@ These are the ideas in plain language. The contract with the concrete endpoints 
 | Question / decision | Current position | Next step |
 |---|---|---|
 | Scope of version 1 | Decided: Workflows A and B plus accepting an offer; payment, chat, maps API, reviews and verification are out | Confirm in the backend coaching (26 Oct) |
-| Moving date | Decided: the date must not lie in the past (earlier draft: 7 days minimum lead time, dropped) | Implement as input validation when creating requests (planned, Workflow A) |
+| Moving date | Decided: the date must not lie in the past (earlier draft: 7 days minimum lead time, dropped) | Done: checked when a request is created or changed (rule 1, `service.calculated_fields`) |
 | Request reference | Decided: `MM-<ID>` is built from the request ID and not stored | Done: read-only field `reference` in the contract and the API |
-| Deleting a request | Decided: real delete while not `assigned`; its pending offers are deleted with it | Implement in Milestone 2 (including the related offers) |
+| Deleting a request | Decided: real delete while not `assigned`; its pending offers are deleted with it | Done: `DELETE /moving-requests/{id}` |
 | Changing or withdrawing an offer | Decided: offers cannot be edited; a pending offer can be withdrawn (deleted) and replaced by a new one; an accepted offer is binding; accepting an offer that no longer exists gives an error | Done for withdrawing and creating offers (rules 5, 6, 9); accepting follows |
 | Accepted offer | Decided: no `acceptedOfferId` on the request; the accepted offer is the offer with status `accepted` | Done in the data model draft |
-| Who sets a request to `completed`? | Decided: automatically after the moving date has passed; no manual step | Choose the technical approach in Milestone 2 (e.g. derive it when the request is read) |
+| Who sets a request to `completed`? | Decided: automatically after the moving date has passed; no manual step | Done: the status is derived when the request is read (`service.present`); it is not stored |
 | Company cancels after assignment | Out of scope for version 1; accepted offers are binding. Possible later idea: reliability rating of companies | Revisit after the integration milestone |
 | Distance | Customer enters an approximate value in km | Ask in coaching; check a postal-code table as alternative |
 | Price formula and rates | Draft (see business rule 3) | Validate rates with one real quote or a moving company website |
-| Accepting an offer as an API operation | Tendency: explicit action endpoint | Contract lists `POST /offers/{offer_id}/accept` as planned; final decision when we implement it |
+| Accepting an offer as an API operation | Decided: explicit action endpoint `POST /offers/{offer_id}/accept` | Done; confirm the choice in the integration coaching (16 Nov) |
 | User table(s) and roles | Undecided | Define together in the persistence/security lessons (security class 23 Nov) |
-| Frontend technology | Undecided (allowed at this stage) | Decide before the integration milestone (16 Nov) |
+| Frontend technology | Decided: plain HTML, CSS and JavaScript, served by the FastAPI application under `/app`; the browser calls the API with `fetch` | Done for both workflows (see Integration) |
 | API testing with Postman | Not used — none of us has worked with Postman so far | We test with automated pytest tests and the Swagger UI (`/docs`) using the sample JSON in `data/` |
-| Who is the acting company without login? | Decided for now: the temporary header `X-Company-Id` names the company; unknown company → 422 | Replace by real login and access checks in the security lesson (23 Nov) |
-| Flat offer endpoint | Decided: `POST /offers` with `movingRequestId` in the body, `GET/DELETE /offers/{offer_id}` | Add `GET /offers?movingRequestId=` to compare offers (planned) |
+| Who is the acting user without login? | Decided for now: the temporary headers `X-Company-Id` and `X-Customer-Id` name the acting user; unknown user → 422 | Replace by real login and access checks in the security lesson (23 Nov) |
+| Flat offer endpoint | Decided: `POST /offers` with `movingRequestId` in the body, `GET/DELETE /offers/{offer_id}` | Done: `GET /offers?movingRequestId=` lists the offers of a request |
 | Comparing external APIs (e.g. a distance/maps service) | Not done yet | Only relevant if we pursue the distance extension above |
 
 ### Changes after the design coaching (5 October)
@@ -216,15 +216,31 @@ The feedback in the coaching was brief and we did not take minutes. What we took
 
 ### Changes after the backend coaching (26 October)
 
-To be filled in after the coaching: feedback received, corrections made, and the workflow chosen for the frontend integration.
+We did not take minutes. The main feedback we recorded: add all operations of the contract, not only the first slice.
+
+**Changes made after the coaching:**
+
+- All 11 operations of the contract are implemented and set to `tested` (before: 5). New are the furniture catalogue, creating, changing and deleting a moving request, listing the offers of a request and accepting an offer.
+- Rules 1, 2, 3, 7, 8 and 10 are now enforced in `movematch/service.py` (see [Where the business rules are enforced](#where-the-business-rules-are-enforced)).
+- The acting customer is named by the header `X-Customer-Id`, like the company by `X-Company-Id`.
+- Workflow chosen for the frontend integration: Workflow A (publish a request) together with Workflow B (submit an offer), because accepting an offer needs both sides.
+
+### Progress and questions for the integration coaching (16 November)
+
+- **Changed since Milestone 2:** all operations implemented; browser interface added; contract, tests and this README updated.
+- **Working now:** a customer publishes, changes and deletes a request and accepts an offer; a company filters the marketplace, submits an offer and withdraws it. Every action goes through the API and is saved in the JSON file.
+- **Open issue:** no login and no ownership checks; the marketplace filter runs in the browser; the price range is shown after publishing and not in a separate review step (see [Known limitations](#known-limitations)).
+- **Questions:** (1) Is the explicit action endpoint `POST /offers/{id}/accept` the right choice, or would you expect a `PATCH` on the status of the offer? (2) Should the marketplace filter move into the API, or is filtering in the browser acceptable for a project of this size?
+- **Next step:** replace the demo headers by a login with roles after the security lesson (23 Nov) and check it with tests that try to change requests and offers of other users. Responsible person: to be agreed in the team.
+- **Agreed in the coaching:** to be filled in after the meeting.
 
 ### Milestone progress
 
 | Milestone | Available evidence | Status / next step |
 |---|---|---|
 | 1 — Design draft | Analysis, workflows A and B, sketches in `sketches/`, sample JSON in `data/`, proposed operations, open questions | Committed and revised after coaching (see above) |
-| 2 — Contract and available implementation | `contracts/movematch.openapi.yaml` (11 operations, 5 implemented and tested), FastAPI backend in `movematch/`, 49 automated tests in `tests/` | Committed; next: record coaching feedback (26 Oct) and choose the workflow for frontend integration |
-| Integration — later | Revised feature scope, frontend decision, architecture and a connected workflow | Update later |
+| 2 — Contract and available implementation | `contracts/movematch.openapi.yaml` (11 operations, 5 of them implemented and tested at that time), FastAPI backend in `movematch/`, 49 automated tests in `tests/` | Committed; feedback recorded above |
+| 3 — Integration | Frontend decision, all 11 operations implemented and tested (83 automated tests), browser interface in `frontend/`, one traced workflow with a success and an error case | Committed for the coaching on 16 Nov; next: login and access checks |
 
 Contributions and decisions are described in this README; commit counts are not a measure of individual effort.
 
@@ -238,41 +254,93 @@ Contributions and decisions are described in this README; commit counts are not 
 | Application logic | `movematch/service.py` | The business rules; no HTTP or FastAPI code. Raises `MoveMatchError` (`invalid_input`, `not_found`, `conflict`) |
 | Persistence | `movematch/storage.py`, `movematch/seed.json` | Reads and writes one JSON file (`movematch-data.json`) safely; creates it from the seed data on the first start |
 | Contract | `contracts/movematch.openapi.yaml` | Describes every operation with schemas, examples and errors, and its status: `planned`, `implemented` or `tested` |
+| Interface | `frontend/index.html`, `frontend/app.js`, `frontend/style.css` | Builds the pages in the browser, calls the API with `fetch` and shows the answers and error messages. Contains no business rules |
 
-The service receives the store through its constructor (dependency injection), so tests can use a temporary file.
+The service receives the store and the current date through its constructor (dependency injection), so tests can use a temporary file and a fixed date.
 
 ### Operations: planned / implemented / tested
 
 | Operation | Endpoint | Status |
 |---|---|---|
+| List furniture types | `GET /furniture-types` | tested |
 | List moving requests | `GET /moving-requests` | tested (no filters yet) |
+| Create moving request | `POST /moving-requests` (header `X-Customer-Id`) | tested |
 | Read one moving request | `GET /moving-requests/{id}` | tested |
+| Change moving request | `PUT /moving-requests/{id}` | tested |
+| Delete moving request | `DELETE /moving-requests/{id}` | tested |
+| List offers of a request | `GET /offers?movingRequestId=` | tested |
 | Create offer | `POST /offers` (header `X-Company-Id`) | tested |
 | Read one offer | `GET /offers/{id}` | tested |
 | Withdraw offer | `DELETE /offers/{id}` | tested |
-| Create / change / delete moving request | `POST /moving-requests`, `PUT` / `DELETE /moving-requests/{id}` | planned |
-| List furniture types | `GET /furniture-types` | planned |
-| List offers of a request | `GET /offers?movingRequestId=` | planned |
-| Accept offer | `POST /offers/{id}/accept` | planned |
+| Accept offer | `POST /offers/{id}/accept` | tested |
 
 ### Where the business rules are enforced
 
 | Rule | Status | Where |
 |---|---|---|
+| 1 Moving date not in the past | implemented | `service.calculated_fields` → 422 |
+| 2 Whole quantities ≥ 0, at least one item ≥ 1 | implemented | `models.RequestItem` and `service.calculated_fields` → 422 |
+| 3 Price range (estimate ± 15 %, rounded inwards to CHF 50) | implemented | `service.calculated_fields`, `service.price_range` |
 | 4 Price within the range | implemented | `service.create_offer` → 422 |
 | 5 One offer per company and request | implemented | `service.create_offer` → 409 |
 | 6 Request must accept offers | implemented | `service.create_offer` → 409 |
+| 7 Accept an offer | implemented | `service.accept_offer` → 404 / 409 |
+| 8 Edit only while `open`; delete only while not assigned | implemented | `service.replace_moving_request`, `service.delete_moving_request` → 409 |
 | 9 Withdraw only while pending; last pending offer → request `open` | implemented | `service.delete_offer` → 409 |
-| 1, 2, 3 (date, quantities, price calculation) | planned | Workflow A (create request) |
-| 7 Accept an offer | planned | accept operation |
-| 8 Edit / delete a request | planned | request operations |
-| 10 `completed` after the moving date | planned | later |
+| 10 `completed` after the moving date | implemented | `service.present` (derived when the request is read, not stored) |
 
 ### Known limitations
 
-- No login: the temporary header `X-Company-Id` is used. There is no ownership check yet, so anyone can withdraw any pending offer (security lesson 23 Nov).
-- Moving requests are read-only and come from the seed data (requests 1038 `assigned`, 1042 `offers_received`, 1047 `open`; companies 7, 8, 9). The next new offer gets ID 311.
+- No login: the interface offers a list of demo users and sends the choice as `X-Customer-Id` or `X-Company-Id`. There is no ownership check yet, so anyone can change, delete, accept or withdraw on behalf of others (security lesson 23 Nov).
+- The price range is calculated when the request is published. The separate review step from sketch 1 (see the range first, then publish) is not built; instead a request can be changed or deleted while it is `open`.
+- The marketplace filter (date, city or postal code) runs in the browser; the API returns all requests. A filter by canton is not available.
+- "My offers" collects the offers request by request, because the contract has no operation for the offers of one company.
+- Error messages are shown as the API returns them, including the field name (for example `movingDate: must not lie in the past.`).
+- The seed data (requests 1038, 1042 and 1047; customers 1 and 2; companies 7, 8 and 9) has moving dates in November 2026. Open requests whose date has passed stay listed; only `assigned` requests change to `completed`.
 - JSON file instead of a database; the real persistence follows in the persistence lesson.
+
+### Integration (Milestone 3)
+
+**Frontend choice.** Plain HTML, CSS and JavaScript in `frontend/`, served by the same FastAPI application under `/app`. The HTML is produced in the browser (`frontend/app.js`) and the browser calls the API directly with `fetch`; there is no frontend server and no build step. Our reasons: one start command and one port, no second technology to learn before the security lesson, and every request can be followed in the network tab of the browser. FastAPI only delivers the three static files (`app.mount("/app", ...)` at the end of `create_app` in `movematch/api.py`).
+
+**User and goal.** Lena (customer) publishes her move from Basel to Zürich and accepts an offer. The dispatcher of Umzüge Keller GmbH finds the request on the marketplace and submits that offer.
+
+**Compared with the sketches** ([customer](sketches/01-customer-create-request.png), [company](sketches/03-company-marketplace-offer.png)):
+
+- As sketched: one column with +/− steppers and a highlighted price range for the customer, a table with filters and a price field labelled with the allowed range for the dispatcher, errors at the form with all input kept.
+- Changed: the new request flow has two states (form, saved request) and not three, because the price range comes from the backend when the request is saved. Confirming an action that cannot be undone is a second click on the same button.
+- Not built: the start page for visitors and the login. A list of demo users in the header takes their place.
+
+| View | Role | API calls | State |
+|---|---|---|---|
+| My requests | Customer | `GET /moving-requests` | connected (own requests selected in the browser) |
+| New request, change request | Customer | `GET /furniture-types`, `POST /moving-requests`, `PUT /moving-requests/{id}` | connected |
+| Request detail with offers | Customer | `GET /moving-requests/{id}`, `GET /offers?movingRequestId=`, `POST /offers/{id}/accept`, `DELETE /moving-requests/{id}` | connected |
+| Marketplace | Company | `GET /moving-requests` | connected; the filter runs in the browser |
+| Request detail with offer form | Company | `GET /moving-requests/{id}`, `POST /offers` | connected |
+| My offers | Company | `GET /offers?movingRequestId=` per request, `DELETE /offers/{id}` | connected |
+| Start page, login | Visitor | none | not built |
+
+**Trace of one interaction: Lena publishes a moving request**
+
+| Step | What happens in our project | Relevant code or data |
+|---|---|---|
+| User action | Lena fills in both addresses, 90 km, the moving date and the furniture (1 sofa, 1 bed, 2 wardrobes, 20 boxes) and clicks "Calculate price range and publish" | `renderRequestForm` in [`frontend/app.js`](frontend/app.js) |
+| Request | `POST /moving-requests` with the header `X-Customer-Id: 1` and a body shaped like [`data/create-moving-request.json`](data/create-moving-request.json) | `onsubmit` handler in `renderRequestForm` and `api()` in `frontend/app.js`; route `create_moving_request` in [`movematch/api.py`](movematch/api.py); shape `MovingRequestInput` in [`movematch/models.py`](movematch/models.py) |
+| Processing and storage | The customer must exist; the date must not lie in the past (rule 1); at least one item needs a quantity of 1 or more (rule 2); volume 10.5 m³ and estimate CHF 1,400 give the range CHF 1,200 to 1,600 (rule 3). The request is saved with the next ID and the status `open` in `movematch-data.json` | `create_moving_request`, `calculated_fields` and `price_range` in [`movematch/service.py`](movematch/service.py); `JsonStore.save` in [`movematch/storage.py`](movematch/storage.py) |
+| Result | `201` with the saved request and a `Location` header. The interface shows "Request MM-1048 is published. Price range: CHF 1200 – 1600." and opens the request with its (still empty) list of offers | the same `onsubmit` handler, `showNotice` and `renderCustomerDetail` in `frontend/app.js` |
+
+**What we checked.** Clicked through in Chrome on 16 November 2026 against a fresh data file. Every success was confirmed by reading the data back from the API, not only by the confirmation in the interface. The same cases are covered by the automated tests.
+
+| Case | Action or input | Expected result | Observed result / remaining issue |
+|---|---|---|---|
+| Success | Lena: 4057 Basel, floor 3, no lift → 8004 Zürich, floor 1, lift; 90 km; 05.12.2026; 1 sofa, 1 bed, 2 wardrobes, 20 boxes | Request saved as `open` with 10.5 m³ and CHF 1,200 to 1,600; confirmation in the interface | As expected. `GET /moving-requests` returned request 1048 with status `open`, customer 1 and the range 1200 to 1600 |
+| Error | The same input with the moving date 06.10.2026 | `422`, message at the form, input kept, nothing saved | As expected: "movingDate: must not lie in the past. (HTTP 422)" below the form, the input stayed, the API still returned three requests. Remaining issue: the message is the raw text of the API |
+| Error | Umzüge Keller GmbH enters CHF 1750 for MM-1048 | `422`, allowed range shown, input kept, no offer saved | As expected: "price: must be between 1200 and 1600 CHF. (HTTP 422)" at the price field; `GET /offers?movingRequestId=1048` returned an empty list |
+| Success | Umzüge Keller GmbH offers CHF 1450; Lena accepts the offer and confirms | Offer `pending` and request `offers_received`; after accepting: offer `accepted`, request `assigned` | As expected, read back from the API after each step |
+| Limitation | Lena wants to see the price range before she publishes | A review step as in sketch 1 | Not built: the range is shown after saving. Next check once it exists: nothing is saved before the customer confirms |
+
+Also clicked through with the expected result: withdrawing a pending offer under "My offers", changing an open request (the price range is recalculated) and deleting a request.
 
 ## 5. Execution
 
@@ -285,7 +353,7 @@ pip install -r requirements-test.txt
 python -m uvicorn main:app --reload
 ```
 
-The API runs at http://127.0.0.1:8000. Opening this address leads directly to the interactive documentation (Swagger UI) at http://127.0.0.1:8000/docs, where every endpoint can be tried out. The file `movematch-data.json` is created on the first start; delete it (with the server stopped) to reset to the seed data.
+The application runs at http://127.0.0.1:8000 and only this one process has to keep running. The browser interface is at http://127.0.0.1:8000/app/ and the interactive API documentation (Swagger UI) at http://127.0.0.1:8000/docs (the start address leads there). The file `movematch-data.json` is created on the first start; delete it (with the server stopped) to reset to the seed data.
 
 ### Start in GitHub Codespaces (no local installation)
 
@@ -295,8 +363,17 @@ The API runs at http://127.0.0.1:8000. Opening this address leads directly to th
    pip install -r requirements-test.txt
    python -m uvicorn main:app
    ```
-3. Click **Open in Browser** in the "Port 8000" notification. The Swagger UI opens; there, **Try it out → Execute** runs a request.
+3. Click **Open in Browser** in the "Port 8000" notification. The Swagger UI opens; there, **Try it out → Execute** runs a request. Replace `/docs` by `/app/` in the address to open the interface.
 4. Run `python -m pytest` in a second terminal to execute the tests. Stop the server with `Ctrl+C`.
+
+### Demo in the interface
+
+Open http://127.0.0.1:8000/app/. All data is fictional; use a moving date in the future.
+
+1. Acting as **Lena Meier**: **New request**, fill in the form (for example 4057 Basel, floor 3 → 8004 Zürich, floor 1 with lift, 90 km, 1 sofa, 1 bed, 2 wardrobes, 20 boxes) and publish. The request appears with the price range CHF 1200 – 1600.
+2. Try the same with a date in the past: the message appears below the form, the input stays and nothing is saved.
+3. Acting as **Umzüge Keller GmbH**: **Marketplace**, open the new request, enter 1750 (rejected, range shown), then 1450 (saved, listed under **My offers**).
+4. Acting as **Lena Meier** again: open the request, **Accept offer** and confirm. The request is `assigned` and the offer `accepted`.
 
 ### Demo (Swagger UI or curl)
 
@@ -318,9 +395,10 @@ curl -X POST http://127.0.0.1:8000/offers -H "Content-Type: application/json" -H
 python -m pytest
 ```
 
-`tests/test_api.py` checks success, invalid input and conflicts against the planned errors in `data/error-examples.json`. `tests/test_contract.py` checks that the contract and the implementation agree (operations, status codes, data shapes, real responses and all examples).
+`tests/test_api.py` checks the offer operations and `tests/test_requests.py` the operations added in Milestone 3: success, invalid input and conflicts against the planned errors in `data/error-examples.json`. `tests/test_contract.py` checks that the contract and the implementation agree (operations, status codes, data shapes, real responses and all examples). The tests of Milestone 3 run with a fixed date, so their result does not depend on the day.
 
 ## 6. References and acknowledgements
 
 - Course material Web-based Applications HS26 (FHNW, Dr. Devid Montecchiari): "Networks, the Web and APIs", "Web engineering and application design", "API design and lifecycle", project assignment and Milestone 1 README template.
 - Sketches, the data model diagram and the sample data were created digitally; parts of the text, sketches, sample data and the code (backend, tests, contract) were drafted with AI assistance (Claude) and reviewed and adapted by the team.
+- The browser interface and the operations added in Milestone 3 were also drafted with AI assistance (Claude) and are reviewed by the team.
