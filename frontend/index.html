@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoveMatch</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>MoveMatch</h1>
+    <label class="user">Acting as
+      <!-- Temporary stand-in for the login: the choice is sent as X-Customer-Id or X-Company-Id. -->
+      <select id="user">
+        <optgroup label="Customers">
+          <option value="customer:1">Lena Meier</option>
+          <option value="customer:2">Marc Weber</option>
+        </optgroup>
+        <optgroup label="Moving companies">
+          <option value="company:7">Umzüge Keller GmbH</option>
+          <option value="company:8">Rhein Transport AG</option>
+          <option value="company:9">Zügelprofi Basel</option>
+        </optgroup>
+      </select>
+    </label>
+  </header>
+  <nav id="nav"></nav>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <main id="view"></main>
+  <script src="app.js"></script>
+</body>
+</html>
